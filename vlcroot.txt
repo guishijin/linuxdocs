@@ -1,0 +1,21 @@
+
+
+    chrome、vlc等程序使root用户无法使用的原理是：它获取程序的所有者，如果它是root用户，就让它不能运行。
+
+    程序中用到的函数是geteuid()。geteuid就是get essensial user id，获取有效用户id。每一个用户都有一个id，root用户id为0，普通用户id为1000以上。
+
+    知道原理后就可以得出解决办法了，就是将geteuid替换成getppid。getppid是获取此进程的父进程id，由于它是独立进程，它的父进程就是init进程（启动后的第一个进程），进程id为1，永远不可能为0。
+
+    首先查询程序的位置，以chromium-browser为例，
+
+    which chromium-browser
+
+    路径是/usr/bin/chromium-browser，然后
+
+    vim /usr/bin/chromium-browser
+
+    输入/geteuid，输入i进入输入模式，将geteuid改成getppid，然后ESC，输入wq，保存退出，这样程序root用户就可以运行了，vlc等其他程序也是一样的办法。
+
+    我发现之后的chromiun更新了， /usr/bin/chromium-browser变成了一个非程序文件，只相当于一个链接了，真正的程序文件是/usr/lib/chromium-browser， 所以编辑此文件就行，方法一样。
+
+

@@ -1,0 +1,20 @@
+ Ubuntu14.04使用内存盘
+标签： ubuntu
+2015-09-12 14:43 651人阅读 评论(0) 收藏 举报
+ 分类： 命令（14）   linux（48）  
+版权声明：本文为jiarenyf原创文章，未经允许也可以转载，但是附上链接……
+新建挂载文件夹：
+mkdir -p ~/ydf_shm
+1
+1
+建立内存盘并挂载：
+sudo mount -t tmpfs -o size=500M,mode=0755 tmpfs ~/ydf_shm
+
+增加用户权限：
+sudo chmod -R 777 ~/ydf_shm
+
+开启自动创建并挂载：
+sudo gedit /etc/fstab
+# 末尾加上：
+# sudo mount -t tmpfs -o size=500M,mode=0755 tmpfs ~/ydf_shm
+# sudo chmod -R 777 ~/ydf_shm

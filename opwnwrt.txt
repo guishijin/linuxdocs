@@ -1,0 +1,722 @@
+ 基于ubuntu14.04搭建OpenWrt开发环境
+标签： ubuntuopenwrt
+2017-03-25 22:44 917人阅读 评论(0) 收藏 举报
+ 分类： OpenWrt（5）  
+目录(?)[+]
+前言
+
+可利用OpenWrt实现智能应用，比如单号多拨榨取运营商带宽、绑定域名远程控制、挂载大容量硬盘、搭建BT下载机、搭建网络摄像头、Samba/DLNA家庭NAS共享、私有云同步、FTP、个人网站/服务器…
+第一部分：搭建开发环境
+
+1、安装ubuntu（编译需要Linux环境），虚拟机或物理机均可。 
+2、安装完成打开终端，在编译OpenWRT之前需要验证编译环境是否满足要求（未安装将进行安装），即安装依赖的库文件，如下。
+
+sudo apt-get install g++
+sudo apt-get install libncurses5-dev
+sudo apt-get install zlib1g-dev
+sudo apt-get install bison
+sudo apt-get install flex
+sudo apt-get install unzip
+sudo apt-get install autoconf
+sudo apt-get install gawk
+sudo apt-get install make
+sudo apt-get install gettext
+sudo apt-get install gcc
+sudo apt-get install binutils
+sudo apt-get install patch
+sudo apt-get install bzip2
+sudo apt-get install libz-dev
+sudo apt-get install asciidoc
+sudo apt-get install subversion
+sudo apt-get install sphinxsearch
+sudo apt-get install libtool
+sudo apt-get install sphinx-common
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+第二部分：下载OpenWrt源码
+
+OpenWrt源码分两种，一种是最新但不是最稳定的Trunk开发版，一种是最稳定的Backfire版。 
+注意：本教程使用Trunk开发版。 
+1、首先安装Git工具
+
+$ sudo apt-get install git-core
+1
+1
+2、获取最新源码。如何获取源码可查看：https://dev.openwrt.org/wiki/GetSource
+
+$ git clone git://git.openwrt.org/openwrt.git
+1
+1
+也可以获取特定分支的源码，例如我们获取 15.05 branch (Chaos Calmer) 这个分支 
+以下步骤都使用的这份源码！
+
+$ git clone git://git.openwrt.org/15.05/openwrt.git
+1
+1
+第三部分：编译OpenWrt源码
+
+编译环境：Ubuntu 14.04.2 64-Bit 
+路由器型号：TP-LINK TL-WR703N v1, 改过硬件：8M Flash / 64M Memory
+
+固件也可以去官方下载：https://downloads.openwrt.org/ 
+例如 TP-LINK TL-WR703N v1 的最新固件下载地址为：
+
+factory: https://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/openwrt-15.05-ar71xx-generic-tl-wr703n-v1-squashfs-factory.bin 
+sysupgrade: https://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/openwrt-15.05-ar71xx-generic-tl-wr703n-v1-squashfs-sysupgrade.bin 
+优点是方便，缺点是不能自己定制，注意：如果你是改过 Flash 大小的，那么也必须自己编译 
+可参考官方文档关于编译的章节： 
+http://wiki.openwrt.org/doc/start#building_openwrt
+1、进入源码目录
+
+$ cd openwrt
+1
+1
+2、打开 target/linux/ar71xx/image/Makefile 这个文件 
+将如下内容
+
+define Device/tl-wr703n-v1
+    $(Device/tplink-4mlzma)
+    BOARDNAME := TL-WR703N
+    DEVICE_PROFILE := TLWR703
+    TPLINK_HWID := 0x07030101
+    CONSOLE := ttyATH0,115200
+endef
+1
+2
+3
+4
+5
+6
+7
+1
+2
+3
+4
+5
+6
+7
+改为：
+
+define Device/tl-wr703n-v1
+    $(Device/tplink-16mlzma)
+    BOARDNAME := TL-WR703N
+    DEVICE_PROFILE := TLWR703
+    TPLINK_HWID := 0x07030101
+    CONSOLE := ttyATH0,115200
+endef
+1
+2
+3
+4
+5
+6
+7
+1
+2
+3
+4
+5
+6
+7
+3、打开 tools/firmware-utils/src/mktplinkfw.c 这个文件 
+将如下内容：
+
+.id             = "TL-WR703Nv1",
+.hw_id          = HWID_TL_WR703N_V1,
+.hw_rev         = 1,
+.layout_id      = "4Mlzma",
+1
+2
+3
+4
+1
+2
+3
+4
+改为：
+
+.id             = "TL-WR703Nv1",
+.hw_id          = HWID_TL_WR703N_V1,
+.hw_rev         = 1,
+.layout_id      = "16Mlzma",
+1
+2
+3
+4
+1
+2
+3
+4
+4、（可选）下载和安装所有可用的 Feeds
+
+Feeds是OpenWrt环境所需要的软件包套件。最重要的feeds有： 
+‘packages’一些额外的基础路由器特性软件 
+‘LuCI’ OpenWrt默认的GUI 
+‘Xwrt’ 另一种可选的GUI界面
+安装需要能够连接互联网，在下载之前可以通过查看“feeds.conf.default”文件，来检查哪些文件需要包含在环境中。 
+更新所有 packages包并安装，只有安装之后，在后面的make menuconfig时，才可以对相关配置进行勾选。
+
+$ ./scripts/feeds update -a
+$ ./scripts/feeds install -a
+1
+2
+1
+2
+输入以下命令，检查哪些需要的包还没有安装：
+
+$ make defconfig
+$ make prereq
+$ make menuconfig
+1
+2
+3
+1
+2
+3
+5、配置编译环境
+
+$ make menuconfig
+1
+1
+输入以上命令之后，会进入一个命令行图形界面，界面最上面是用法
+
+[*]表示:这个包裹选中编译，并安装在升级版本中； 
+[M]表示：这个软件包选中编译，但并不安装在升级版本中。
+以下是我的一些配置，你可以选择性的参考，我的配置非常简单，如果需要额外的功能可以通过 opkg 来安装，所以固件简单点就好，反正之后还可以安装。
+
+选择 CPU 型号 
+Target System 选为 Atheros ARM7xxx/ARM9xxx
+
+选择你的路由器型号 
+Target Profile 选为 TP-LINK TP-WR703N
+
+启用 Web 管理界面 LuCI 
+LuCI → Collections → 选中 luci
+
+添加 LuCI 中文支持 
+LuCI → Modules → Translations → 选中 Chinese (zh-cn)
+
+生成构建的配置文件，检查依赖等
+
+$ make defconfig
+1
+1
+编译，可加上 V=99 参数输出所有调试信息
+
+$ make V=99
+1
+1
+在虚拟机中大概编译了一个半到二个小时，大多数时间都在下载，所以要保持网络通畅
+
+编译好了之后可在 bin/ar71xx 目录找到生成的以下两个固件 
+openwrt-ar71xx-generic-tl-wr703n-v1-squashfs-factory.bin 
+openwrt-ar71xx-generic-tl-wr703n-v1-squashfs-sysupgrade.bin
+
+已经安装了 OpenWrt 那么可用 sysupgrade 固件进行升级，会保留用户数据（也可选不保留） 
+注意：factory 固件在第一次刷机的时候使用
+
+第四部分：刷机
+
+我所使用的 U-Boot 是这个：https://github.com/pepe2k/u-boot_mod 
+步骤如下：
+
+将电脑 IP 设置为 192.168.1.2, 子网掩码设置为 255.255.255.0
+
+断开路由器的电源，用网线连接好电脑和路由器
+
+按住路由器的 Reset 按钮，插上电源，
+
+待路由器灯闪四次后放开，放开后，路由器灯会快闪一次，代表进入了恢复模式
+
+用电脑浏览器打开 http://192.168.1.1/index.html, 打开后，上传固件。如打不开可重复以上几步
+
+上传完固件后，等一段时间，待机器自动重启 ，此时可将电脑 IP 设置为正常
+
+第五部分：配置路由器
+
+要对OpenWrt进行配置，一般有两条途径：
+
+SSH登录通过命令行控制
+Web登录通过Web界面设置
+首次安装OpenWrt后，需要设置密码才可以使用SSH登录，方法是使用telnet登录或者Web登录设置密码。在Windows下面telnet和SSH登录可以使用Putty，在Linux或Mac下可分别使用如下命令：
+
+$ ssh –l root 192.168.1.1 //Linux
+$ ssh root@192.168.1.1 //Mac
+1
+2
+1
+2
+因为系统初始是不开启无线连接的，所以你需要用网线将电脑和路由器连起来，配置成网口 PPPoE 上网，电脑连接无线上网。
+
+1、登录Web管理界面，前提是该OpenWrt系统中要安装了Web界面，一般是Luci，登录方式与普通路由器无异，打开浏览器，输入路由器IP即可进入登录界面，OpenWrt的默认IP是192.168.1.1。
+
+更改系统语言 
+Syatem → Language 修改为 Chinese, 点击 Save & Apply
+
+点击，网络 → 无线，设置好 SSID, 密码点击「保存&应用」，最后点击「启用」 
+现在可以通过无线连接到路由器进行配置了
+
+2、注意：配置网络还是修改配置文件比较方便，也比较好讲解 
+修改之前先备份配置文件 cp /etc/config/network /etc/config/network.old 
+然后编辑配置文件 vim /etc/config/network
+
+修改 lan 配置，修改成如下样子
+
+config interface 'lan'
+    # 去掉这个，表示只有无线应用到 lan
+    # option ifname 'eth0'
+    option force_link '1'
+    # 去掉这个，因为只有无线应用到 lan, 所以不需要桥接
+    # option type 'bridge'
+    option proto 'static'
+    option ipaddr '192.168.1.1'
+    option netmask '255.255.255.0'
+    option ip6assign '60'
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+增加 wan 配置，PPPoE 方式上网
+
+config interface 'wan'
+    option ifname 'eth0'
+    option proto 'pppoe'
+    option username 'USERNAME'
+    option password 'PASSWORD'
+1
+2
+3
+4
+5
+1
+2
+3
+4
+5
+最后使用如下命令重启网络服务：
+
+/etc/init.d/network restart
+1
+1
+以后配置路由器请使用无线连接方式，有线连接用于 PPPoE 上网。
+
+第六部分：写一个helloworld程序
+
+OpenWrt上面应用程序开发有两种方式，一种是利用OpenWrt SDK,一种是利用OpenWrt源码。 
+这里主要介绍利用OpenWrt源码，进行开发应用程序，制作成ipk软件可以安装。
+1、进入package目录,创建软件目录
+
+$ cd /home/openwrt/package
+$ mkdir test
+1
+2
+1
+2
+2、进入test目录，创建Makefile文件和代码路径。这个Makefile文件是给OpenWRT读的，是用来生成软件包的。
+
+##############################################
+# OpenWrtMakefile for test program
+#
+#
+# Most ofthe variables used here are defined in
+# theinclude directives below. We just need to
+# specifya basic description of the package,
+# whereto build our program, where to find
+# thesource files, and where to install the
+#compiled program on the router.
+#
+# Be verycareful of spacing in this file.
+# Indentsshould be tabs, not spaces, and
+# thereshould be no trailing whitespace in
+# linesthat are not commented.
+#
+##############################################
+include $(TOPDIR)/rules.mk
+# Nameand release number of this package
+PKG_NAME:=test
+PKG_RELEASE:=1
+
+# Thisspecifies the directory where we're going to build the program.
+# Theroot build directory, $(BUILD_DIR), is by default the build_mipsel
+#directory in your OpenWrt SDK directory
+PKG_BUILD_DIR:= $(BUILD_DIR)/$(PKG_NAME)
+
+include $(INCLUDE_DIR)/package.mk
+
+# Specifypackage information for this program.
+# Thevariables defined here should be self explanatory.
+# If youare running Kamikaze, delete the DESCRIPTION
+#variable below and uncomment the Kamikaze define
+# directivefor the description below
+define Package/test
+    #在Base system显示模块名
+    SECTION:=test
+    #这个模块要加在Base system下
+    CATEGORY:=Base system
+    #这个模块提示信息
+    TITLE:=Helloworld-- prints a snarky message
+endef
+
+# Specifywhat needs to be done to prepare for building the package.
+# In ourcase, we need to copy the source files to the build directory.
+# This isNOT the default.  The default uses thePKG_SOURCE_URL and the
+#PKG_SOURCE which is not defined here to download the source from the web.
+# Inorder to just build a simple program that we have just written, it is
+# mucheasier to do it this way.
+define Build/Prepare
+    mkdir -p $(PKG_BUILD_DIR)
+    $(CP) ./src/* $(PKG_BUILD_DIR)/
+endef
+
+# We donot need to define Build/Configure or Build/Compile directives
+# Thedefaults are appropriate for compiling a simple program such as this one
+# Specifywhere and how to install the program. Since we only have one file,
+# thetest executable, install it by copying it to the /bin directory on
+# therouter. The $(1) variable represents the root directory on the router running
+#OpenWrt. The $(INSTALL_DIR) variable contains a command to prepare the install
+#directory if it does not already exist. Likewise $(INSTALL_BIN) contains the
+# commandto copy the binary file from its current location (in our case the build
+#directory) to the install directory.
+define Package/test/install
+    #生成可执行文件目录
+    $(INSTALL_DIR) $(1)/sbin
+    #echo $(INSTALL_BIN)
+    #echo $(PKG_BUILD_DIR)
+    #echo $1
+    #编译目标文件到安装目录
+    $(INSTALL_BIN) $(PKG_BUILD_DIR)/test $(1)/sbin/
+endef
+
+# Thisline executes the necessary commands to compile our program.
+# Theabove define directives specify all the information needed, but this
+# linecalls BuildPackage which in turn actually uses this information to
+# build apackage.
+$(eval $(call BuildPackage,test))#开头没有tab符号
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+３、创建 src 文件夹，并在其内创建相关源文件
+
+$ mkdir src
+$ cd src
+1
+2
+1
+2
+创建 test.c 文件
+
+#include <stdio.h>
+#include <unistd.h>
+int main(void)
+{
+     printf("Hell! O' world, why won't my code compile?\n\n");
+     return 0;
+}
+1
+2
+3
+4
+5
+6
+7
+1
+2
+3
+4
+5
+6
+7
+创建同目录下的 Makefile 文件，用于编译test.c的。注意：第2步也有一个Makefile，但两个Makefile显然不一样，也不在同一层目录下。
+
+#OCTEON_ROOT=$(PWD)/src/
+#CC为交叉编译GCC路径，以后可以跟据情况修改
+#CC=~/openwrt/main/staging_dir/toolchain-mips64_gcc-4.4.1_eglibc-2.10.1/usr/bin/mips64-openwrt-linux-gnu-gcc
+CC=/workPorjectCode/openwrt/trunk/staging_dir/toolchain-mips_34kc_gcc-4.8-linaro_uClibc-0.9.33.2/bin/mips-openwrt-linux-uclibc-gcc
+#CFLAGS=-mips64r2 -mabi=64 -marc
+
+SRC:=test.c
+test: $(SRC)
+    $(CC) $(SRC) -o test
+    # remove object files and executable when user executes "make clean"
+clean:
+    rm *.o
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+４、回到主路径 /home/openwrt/，编译选项配置保存并编译
+
+$ cd /home/openwrt/
+1
+1
+$ make menuconfig
+1
+1
+　　Base system —>
+
+　　　test
+
+选项设置为M，保存退出
+
+然后编译该模块(必须在主路径 /home/openwrt/ 下 make)：
+
+$ make package/test/compile
+1
+1
+到目录为至，已经可以使用scp直接把编译好的程序上转到设备运行了。 
+如果您是在linux下可以用scp命令来上传你的软件包，使用方法：
+
+$ scp xxx/helloworld root@192.168.10.1:/tmp
+1
+1
+xxx/ 填写你的helloworld的路径
+
+5、更新package
+
+$ make package/test/install
+1
+1
+$ make package/index
+1
+1
+生成安装包路径：openwrt\bin\ar71xx\packages
+
+参考文章： 
+[1]OpenWrt mw4530r 开发环境搭建–内含源码及SDK开发环境搭建 
+[2]新手编译开发OpenWrt入门教程(自定义固件、ubuntu学习)–图文教程 
+[3]Openwrt SDK 编译 Hello World–方法简洁待尝试 
+[4]搭建OpenWrt开发环境（包括编译过程）–详细 
+[5]OpenWRT环境下做开发–SDK环境搭建 
+[6]创建软件包是Makefile的详解请查阅openwrt wiki–详细 
+[7] Markdown 语法 示例 字体 字号 颜色 –CSDN支持Makedown语言
+
+第一次写CSDN博客，请多多指教！
+
+                                                                @本文作者：LeatherWang
